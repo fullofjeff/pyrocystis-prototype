@@ -41,6 +41,21 @@ const params = {
   splatForce: 6000,
 };
 
+/**
+ * Touch overrides. The field always fills UV space, so a phone packs the same
+ * particle count into roughly a quarter of the screen area — additive rest glow
+ * stacks up that much brighter, and a finger drag covers far more UV per event
+ * than a mouse does. Thinning the field and easing the stir restores the desktop
+ * feel on a phone. The desktop path keeps the values above untouched.
+ */
+const isTouch = window.matchMedia?.('(pointer: coarse)').matches ?? false;
+if (isTouch) {
+  params.particleCount = 65536;
+  params.pointSize = 1.4;
+  params.baseAlpha = 0.035;
+  params.splatForce = 2200;
+}
+
 // debug hook for live tuning from the console
 (window as unknown as { __params: typeof params }).__params = params;
 
@@ -58,6 +73,7 @@ const input = new Input(renderer.domElement);
 input.stirrerSpeed = params.stirrerSpeed;
 input.splatForce = params.splatForce;
 input.mouseForce = params.splatForce;
+if (isTouch) input.maxSplatDelta = 0.05;
 
 let fluid = new FluidSim(renderer, params.simResolution);
 let particles = new ParticleField(renderer, params.particleCount, renderer.getPixelRatio());

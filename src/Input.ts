@@ -18,11 +18,16 @@ export class Input {
   stirrerSpeed = 0.35;
   splatForce = 6000;
   mouseForce = 6000;
+  /** Largest UV distance one pointer event may contribute. Touch drags cover far
+   *  more UV per event than a mouse; capping keeps a flick from dumping one huge
+   *  impulse. Infinity leaves the mouse path exactly as it was. */
+  maxSplatDelta = Infinity;
 
   private keys = new Set<string>();
   private mouseSplats: Splat[] = [];
-  private pointerDown = false;
-  private lastPointer = new THREE.Vector2();
+  /** Last position per active pointer id — a second finger must not measure its
+   *  delta from the first finger's position. */
+  private pointers = new Map<number, THREE.Vector2>();
   private el: HTMLElement;
 
   constructor(el: HTMLElement) {
@@ -32,11 +37,12 @@ export class Input {
     el.addEventListener('pointerdown', this.onPointerDown);
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
+    window.addEventListener('pointercancel', this.onPointerUp);
   }
 
   /** True while a movement key is held (used to fade the on-screen hint). */
   get active(): boolean {
-    return this.keys.size > 0 || this.pointerDown;
+    return this.keys.size > 0 || this.pointers.size > 0;
   }
 
   private dir(): THREE.Vector2 {
@@ -76,6 +82,7 @@ export class Input {
     this.el.removeEventListener('pointerdown', this.onPointerDown);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
+    window.removeEventListener('pointercancel', this.onPointerUp);
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
@@ -98,23 +105,31 @@ export class Input {
   }
 
   private onPointerDown = (e: PointerEvent) => {
-    this.pointerDown = true;
-    this.lastPointer.copy(this.toUV(e));
+    this.pointers.set(e.pointerId, this.toUV(e));
   };
 
   private onPointerMove = (e: PointerEvent) => {
-    if (!this.pointerDown) return;
+    const last = this.pointers.get(e.pointerId);
+    if (!last) return;
     const uv = this.toUV(e);
+    let dx = uv.x - last.x;
+    let dy = uv.y - last.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > this.maxSplatDelta) {
+      const k = this.maxSplatDelta / dist;
+      dx *= k;
+      dy *= k;
+    }
     this.mouseSplats.push({
       x: uv.x,
       y: uv.y,
-      dx: (uv.x - this.lastPointer.x) * this.mouseForce,
-      dy: (uv.y - this.lastPointer.y) * this.mouseForce,
+      dx: dx * this.mouseForce,
+      dy: dy * this.mouseForce,
     });
-    this.lastPointer.copy(uv);
+    last.copy(uv);
   };
 
-  private onPointerUp = () => {
-    this.pointerDown = false;
+  private onPointerUp = (e: PointerEvent) => {
+    this.pointers.delete(e.pointerId);
   };
 }
