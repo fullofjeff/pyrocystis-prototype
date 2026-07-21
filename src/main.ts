@@ -30,7 +30,7 @@ const params = {
   baseAlpha: 0.075,
   // color
   colorDim: '#0b3d5c',
-  colorBright: '#a8f6ff',
+  colorBright: '#4fe7f8',
   background: '#01030a',
   // bloom
   bloomStrength: 0.46,
