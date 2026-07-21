@@ -19,7 +19,7 @@ const params = {
   // particles
   particleCount: 262144,
   particleSpeed: 0.4,
-  pointSize: 1.7,
+  pointSize: 0.8,
   lifespan: 8.0,
   // glow
   shearScale: 0.5,
@@ -51,7 +51,7 @@ const params = {
 const isTouch = window.matchMedia?.('(pointer: coarse)').matches ?? false;
 if (isTouch) {
   params.particleCount = 65536;
-  params.pointSize = 1.4;
+  params.pointSize = 0.7;
   params.baseAlpha = 0.035;
   params.splatForce = 2200;
 }
