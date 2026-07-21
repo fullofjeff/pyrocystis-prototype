@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Pyrocystis — bioluminescent fluid</title>
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; height: 100%; background: #01030a; overflow: hidden; }
+      #app { position: fixed; inset: 0; }
+      canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+      #hint {
+        position: fixed; left: 16px; bottom: 14px;
+        font: 12px/1.5 -apple-system, BlinkMacSystemFont, "SF Mono", ui-monospace, monospace;
+        color: rgba(160, 220, 255, 0.55);
+        pointer-events: none; user-select: none;
+        text-shadow: 0 0 8px rgba(0, 40, 80, 0.9);
+        transition: opacity 1.2s ease;
+      }
+      #hint.faded { opacity: 0; }
+      #fps {
+        position: fixed; right: 16px; top: 12px;
+        font: 11px/1.4 ui-monospace, "SF Mono", monospace;
+        color: rgba(140, 210, 255, 0.5);
+        pointer-events: none; user-select: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="hint">Arrow keys / WASD to stir &nbsp;·&nbsp; drag the mouse to disturb the water &nbsp;·&nbsp; stir hard to make it glow</div>
+    <div id="fps"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
