@@ -25,7 +25,7 @@ const params = {
   shearScale: 0.5,
   glowThreshold: 0.25,
   glowGain: 0.61,
-  glowDecay: 0.9,
+  glowDecay: 5.5,
   recharge: 1.56,
   baseAlpha: 0.075,
   // color
@@ -33,7 +33,7 @@ const params = {
   colorBright: '#a8f6ff',
   background: '#01030a',
   // bloom
-  bloomStrength: 0.3,
+  bloomStrength: 0.46,
   bloomRadius: 0.93,
   bloomThreshold: 0.0,
   // control
