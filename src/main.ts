@@ -24,17 +24,17 @@ const params = {
   // glow
   shearScale: 0.5,
   glowThreshold: 0.25,
-  glowGain: 1.0,
-  glowDecay: 3.0,
+  glowGain: 0.74,
+  glowDecay: 2.55,
   recharge: 0.2,
-  baseAlpha: 0.06,
+  baseAlpha: 0.165,
   // color
   colorDim: '#0b3d5c',
   colorBright: '#a8f6ff',
   background: '#01030a',
   // bloom
   bloomStrength: 0.3,
-  bloomRadius: 0.9,
+  bloomRadius: 0.93,
   bloomThreshold: 0.0,
   // control
   stirrerSpeed: 0.35,
@@ -201,6 +201,8 @@ d(gui.add({ reset: () => fluid.reset() }, 'reset').name('reset water'),
   'Instantly stills the water (clears all velocity).');
 d(gui.add({ copy: () => navigator.clipboard?.writeText(JSON.stringify(params, null, 2)) }, 'copy').name('copy settings'),
   'Copies the current settings as JSON so you can save a look you like.');
+
+gui.close();
 
 // ---- loop ----
 const clock = new THREE.Clock();
