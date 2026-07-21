@@ -7,6 +7,9 @@ import GUI from 'lil-gui';
 import { FluidSim } from './FluidSim';
 import { ParticleField } from './ParticleField';
 import { Input } from './Input';
+import type { Splat } from './Input';
+import { Conductor } from './Conductor';
+import { SEQUENCES } from './sequences';
 
 const params = {
   // simulation
@@ -106,6 +109,16 @@ function rebuildParticles() {
   renderPass.camera = particles.camera;
 }
 
+/**
+ * Show wiring. `?show=1` strips the panel, hint and fps readout for projection;
+ * `?seq=<id>` boots straight into one sequence (handy when aiming a projector);
+ * `?solo=1` holds that sequence instead of cycling the playlist.
+ */
+const query = new URLSearchParams(window.location.search);
+const showMode = query.has('show');
+const conductor = new Conductor(query.get('seq') ?? undefined);
+if (query.has('solo')) conductor.autoplay = false;
+
 function onResize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -150,6 +163,25 @@ function d<T extends { domElement: HTMLElement }>(controller: T, text: string): 
   controller.domElement.setAttribute('title', text); // native fallback on the whole row
   return controller;
 }
+
+const seqNames: Record<string, string> = {};
+for (const s of SEQUENCES) seqNames[s.name] = s.id;
+const showProxy = { sequence: conductor.activeId, next: () => conductor.advance() };
+
+const fShow = gui.addFolder('Show');
+const seqController = d(
+  fShow.add(showProxy, 'sequence', seqNames).name('sequence').onChange((id: string) => conductor.goTo(id)),
+  'Which sequence is playing. Switching here crossfades, same as the playlist does.');
+d(fShow.add(showProxy, 'next').name('next sequence'),
+  'Advance the playlist now. Keyboard: N for next, P for previous.');
+d(fShow.add(conductor, 'autoplay').name('autoplay'),
+  'Cycle the playlist automatically. Off holds the current sequence indefinitely.');
+d(fShow.add(conductor, 'dwell', 5, 300, 1).name('dwell (s)'),
+  'How long a sequence holds before the playlist advances.');
+d(fShow.add(conductor, 'crossfade', 0, 30, 0.5).name('crossfade (s)'),
+  'Transition length. Both look and motion crossfade, so the water reorganizes rather than cutting.');
+d(fShow.add(conductor, 'intensity', 0, 2, 0.01).name('intensity'),
+  'Global multiplier on scripted stir strength. Raise it if a wall reads too calm from a distance.');
 
 const fSim = gui.addFolder('Fluid');
 d(fSim.add(params, 'simResolution', [64, 128, 256]).name('sim resolution').onChange(rebuildFluid),
@@ -220,14 +252,25 @@ d(gui.add({ copy: () => navigator.clipboard?.writeText(JSON.stringify(params, nu
 
 gui.close();
 
+// Projection mode: nothing on screen but the water.
+if (showMode) {
+  gui.hide();
+  hint.style.display = 'none';
+  fpsEl.style.display = 'none';
+}
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyN') conductor.advance(1);
+  else if (e.code === 'KeyP') conductor.advance(-1);
+});
+
 // ---- loop ----
 const clock = new THREE.Clock();
 let hintFaded = false;
 let fpsAccum = 0;
 let fpsFrames = 0;
 
-const colorDim = new THREE.Color();
-const colorBright = new THREE.Color();
+const splatBuf: Splat[] = [];
 
 function frame() {
   const dt = Math.min(clock.getDelta(), 1 / 30);
@@ -237,32 +280,48 @@ function frame() {
     hintFaded = true;
   }
 
+  conductor.update(dt);
+  const look = conductor.resolve(params);
+  if (showProxy.sequence !== conductor.activeId) {
+    showProxy.sequence = conductor.activeId;
+    seqController.updateDisplay();
+  }
+
   const aspect = window.innerWidth / window.innerHeight;
-  const radius = params.splatRadius / 100;
-  for (const s of input.getSplats(dt)) {
+  const radius = look.splatRadius / 100;
+  splatBuf.length = 0;
+  conductor.emit(dt, splatBuf);
+  // Human input rides on top of the show — a passer-by can always stir.
+  for (const s of input.getSplats(dt)) splatBuf.push(s);
+  for (const s of splatBuf) {
     fluid.splat(s.x, s.y, s.dx, s.dy, radius, aspect);
   }
 
   fluid.step(dt, {
-    velocityDissipation: params.velocityDissipation,
-    velocityFloor: params.velocityFloor,
+    velocityDissipation: look.velocityDissipation,
+    velocityFloor: look.velocityFloor,
     pressureIterations: params.pressureIterations,
-    curl: params.curl,
+    curl: look.curl,
   });
 
   particles.update(dt, fluid, {
-    speed: params.particleSpeed,
-    pointSize: params.pointSize,
-    lifespan: params.lifespan,
-    recharge: params.recharge,
-    shearScale: params.shearScale,
-    glowThreshold: params.glowThreshold,
-    glowGain: params.glowGain,
-    glowDecay: params.glowDecay,
-    baseAlpha: params.baseAlpha,
-    colorDim: colorDim.set(params.colorDim),
-    colorBright: colorBright.set(params.colorBright),
+    speed: look.particleSpeed,
+    pointSize: look.pointSize,
+    lifespan: look.lifespan,
+    recharge: look.recharge,
+    shearScale: look.shearScale,
+    glowThreshold: look.glowThreshold,
+    glowGain: look.glowGain,
+    glowDecay: look.glowDecay,
+    baseAlpha: look.baseAlpha,
+    colorDim: look.colorDim,
+    colorBright: look.colorBright,
   });
+
+  bloomPass.strength = look.bloomStrength;
+  bloomPass.radius = look.bloomRadius;
+  bloomPass.threshold = look.bloomThreshold;
+  renderer.setClearColor(look.background, 1);
 
   renderer.setRenderTarget(null);
   renderer.clear();
@@ -271,7 +330,7 @@ function frame() {
   fpsAccum += dt;
   fpsFrames++;
   if (fpsAccum >= 0.5) {
-    fpsEl.textContent = `${Math.round(fpsFrames / fpsAccum)} fps`;
+    fpsEl.textContent = `${Math.round(fpsFrames / fpsAccum)} fps · ${conductor.activeName}`;
     fpsAccum = 0;
     fpsFrames = 0;
   }
