@@ -17,17 +17,17 @@ const params = {
   curl: 5,
   splatRadius: 0.25,
   // particles
-  particleCount: 65536,
+  particleCount: 262144,
   particleSpeed: 0.4,
-  pointSize: 2.5,
+  pointSize: 1.7,
   lifespan: 8.0,
   // glow
   shearScale: 0.5,
   glowThreshold: 0.25,
-  glowGain: 0.74,
-  glowDecay: 2.55,
-  recharge: 0.2,
-  baseAlpha: 0.165,
+  glowGain: 0.61,
+  glowDecay: 0.9,
+  recharge: 1.56,
+  baseAlpha: 0.075,
   // color
   colorDim: '#0b3d5c',
   colorBright: '#a8f6ff',
