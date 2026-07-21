@@ -6,6 +6,10 @@ slowly and it stays dark. This is Phase 1 of the installation game — the *look
 only. No score, no fish, no fail state yet (that's Phase 2, layered on the same
 fluid substrate).
 
+**Live demo:** https://fullofjeff.github.io/pyrocystis-prototype/ — needs a
+WebGL2 browser (any current Chrome/Safari/Firefox). Every push to `main`
+redeploys it.
+
 ## Run
 
 ```bash
